@@ -1,14 +1,33 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-    database_url: str = "postgresql+psycopg://rexora:rexora@localhost:5432/rexora"
+    database_url: str = "sqlite:////data/app.db"
+
+    @field_validator("database_url", mode="after")
+    @classmethod
+    def _swap_unreachable_local_postgres(cls, value: str) -> str:
+        """Fall back to SQLite on the Fly volume when the provided URL points
+        at a local Postgres that isn't running.
+
+        Older deploys of this app set ``DATABASE_URL=postgresql+psycopg://.../@localhost:5432/...``
+        as a Fly secret. The app now ships with an embedded SQLite default that
+        writes to the persistent volume at ``/data``; if Fly still injects the
+        stale Postgres URL we'd crash on startup. Prefer the volume when it's
+        available rather than try to reach a non-existent local Postgres.
+        """
+        if ("localhost:5432" in value or "127.0.0.1:5432" in value) and Path("/data").is_dir():
+            return "sqlite:////data/app.db"
+        return value
+
     jwt_secret: str = "change-me"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24

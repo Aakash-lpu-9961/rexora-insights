@@ -35,16 +35,27 @@ def _migrate_sqlite_lite() -> None:
             conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(16) NOT NULL DEFAULT 'user'"))
 
 
+STARTUP_ERROR: str | None = None
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):  # noqa: ARG001
-    logger.info("Rexora backend starting up — creating tables and seeding if needed")
-    Base.metadata.create_all(bind=engine)
-    _migrate_sqlite_lite()
-    db = SessionLocal()
+    global STARTUP_ERROR
+    logger.info(
+        "Rexora backend starting up — engine=%s",
+        engine.url.render_as_string(hide_password=True),
+    )
     try:
-        seed_if_empty(db)
-    finally:
-        db.close()
+        Base.metadata.create_all(bind=engine)
+        _migrate_sqlite_lite()
+        db = SessionLocal()
+        try:
+            seed_if_empty(db)
+        finally:
+            db.close()
+    except Exception as exc:
+        STARTUP_ERROR = f"{type(exc).__name__}: {exc}"
+        logger.exception("Startup failed: %s", STARTUP_ERROR)
     yield
 
 
@@ -77,7 +88,11 @@ app.include_router(admin.router)
 
 @app.get("/api/health", tags=["meta"])
 def health() -> dict[str, str]:
-    return {"status": "ok", "service": "rexora-backend"}
+    return {
+        "status": "ok" if not STARTUP_ERROR else "degraded",
+        "service": "rexora-backend",
+        "startup_error": STARTUP_ERROR or "",
+    }
 
 
 @app.get("/", tags=["meta"])
