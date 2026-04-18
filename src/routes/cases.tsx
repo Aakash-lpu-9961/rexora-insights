@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/AppShell";
 import { useState } from "react";
-import { Search, Plus, X, Calendar as CalendarIcon, Tag } from "lucide-react";
-import { pastCases } from "@/lib/mock-data";
+import { Search, Plus, X, Calendar as CalendarIcon, Tag, History } from "lucide-react";
+import { useActiveModule } from "@/lib/module-store";
 
 export const Route = createFileRoute("/cases")({
   head: () => ({
@@ -22,10 +22,12 @@ const priorityColor: Record<string, string> = {
 };
 
 function CasesPage() {
+  const mod = useActiveModule();
+  const cases = mod.data.cases;
   const [filter, setFilter] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
 
-  const filtered = pastCases.filter(
+  const filtered = cases.filter(
     (c) =>
       c.summary.toLowerCase().includes(filter.toLowerCase()) ||
       c.tags.some((t) => t.toLowerCase().includes(filter.toLowerCase())) ||
@@ -35,7 +37,7 @@ function CasesPage() {
   return (
     <AppShell
       title="Past Cases"
-      subtitle="Searchable archive of resolved incidents — root cause and resolution included."
+      subtitle={`Searchable archive of resolved incidents for ${mod.name}.`}
       actions={
         <button
           onClick={() => setModalOpen(true)}
@@ -63,39 +65,49 @@ function CasesPage() {
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-4">
-        {filtered.map((c) => (
-          <div key={c.id} className="rounded-2xl border border-border bg-surface p-5 hover-lift">
-            <div className="flex items-start justify-between gap-3 mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-mono font-semibold text-muted-foreground">{c.id}</span>
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${priorityColor[c.priority]}`}>
-                  {c.priority}
-                </span>
-              </div>
-              <span className="text-[11px] text-muted-foreground">{c.date} · {c.team}</span>
-            </div>
-            <h3 className="text-[15px] font-semibold text-foreground leading-snug">{c.summary}</h3>
-            <div className="mt-4 space-y-3 text-sm">
-              <div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Root Cause</div>
-                <div className="text-foreground/90">{c.rootCause}</div>
-              </div>
-              <div className="rounded-xl bg-success/5 border border-success/20 p-3">
-                <div className="text-[10px] uppercase tracking-wider text-success font-semibold mb-1">Resolution</div>
-                <div className="text-foreground/90 text-sm">{c.resolution}</div>
-              </div>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-1.5">
-              {c.tags.map((t) => (
-                <span key={t} className="px-2 py-0.5 rounded-md bg-secondary text-[11px] text-foreground/80 font-medium">
-                  {t}
-                </span>
-              ))}
-            </div>
+      {cases.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border bg-surface/40 p-12 text-center">
+          <div className="mx-auto h-12 w-12 rounded-2xl bg-secondary flex items-center justify-center">
+            <History className="h-6 w-6 text-muted-foreground" />
           </div>
-        ))}
-      </div>
+          <div className="mt-3 text-sm font-medium text-foreground">No past cases yet for {mod.name}</div>
+          <div className="text-xs text-muted-foreground mt-1">Document your first resolved incident to seed the knowledge base.</div>
+        </div>
+      ) : (
+        <div className="grid lg:grid-cols-2 gap-4">
+          {filtered.map((c) => (
+            <div key={c.id} className="rounded-2xl border border-border bg-surface p-5 hover-lift">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-mono font-semibold text-muted-foreground">{c.id}</span>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${priorityColor[c.priority]}`}>
+                    {c.priority}
+                  </span>
+                </div>
+                <span className="text-[11px] text-muted-foreground">{c.date} · {c.team}</span>
+              </div>
+              <h3 className="text-[15px] font-semibold text-foreground leading-snug">{c.summary}</h3>
+              <div className="mt-4 space-y-3 text-sm">
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Root Cause</div>
+                  <div className="text-foreground/90">{c.rootCause}</div>
+                </div>
+                <div className="rounded-xl bg-success/5 border border-success/20 p-3">
+                  <div className="text-[10px] uppercase tracking-wider text-success font-semibold mb-1">Resolution</div>
+                  <div className="text-foreground/90 text-sm">{c.resolution}</div>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-1.5">
+                {c.tags.map((t) => (
+                  <span key={t} className="px-2 py-0.5 rounded-md bg-secondary text-[11px] text-foreground/80 font-medium">
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {modalOpen && <AddCaseModal onClose={() => setModalOpen(false)} />}
     </AppShell>

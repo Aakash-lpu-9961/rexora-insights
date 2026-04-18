@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/AppShell";
 import { useState } from "react";
 import { Plus, Pencil, Trash2, FileText, Video, Presentation, UploadCloud, Play, MoreHorizontal, Download } from "lucide-react";
-import { attachments } from "@/lib/mock-data";
+import { useActiveModule } from "@/lib/module-store";
 
 export const Route = createFileRoute("/attachments")({
   head: () => ({
@@ -14,20 +14,23 @@ export const Route = createFileRoute("/attachments")({
   component: AttachmentsPage,
 });
 
-const tabs = [
-  { id: "documents", label: "Documents", icon: FileText, count: attachments.documents.length },
-  { id: "videos", label: "Videos", icon: Video, count: attachments.videos.length },
-  { id: "ppts", label: "Presentations", icon: Presentation, count: attachments.ppts.length },
-] as const;
-
 function AttachmentsPage() {
+  const mod = useActiveModule();
+  const att = mod.data.attachments;
+  const tabs = [
+    { id: "documents" as const, label: "Documents", icon: FileText, count: att.documents.length },
+    { id: "videos" as const, label: "Videos", icon: Video, count: att.videos.length },
+    { id: "ppts" as const, label: "Presentations", icon: Presentation, count: att.ppts.length },
+  ];
   const [tab, setTab] = useState<(typeof tabs)[number]["id"]>("documents");
   const [drag, setDrag] = useState(false);
+
+  const empty = att.documents.length + att.videos.length + att.ppts.length === 0;
 
   return (
     <AppShell
       title="Attachments"
-      subtitle="Centralized library of documentation, recordings and decks for this module."
+      subtitle={`Library of documentation, recordings and decks for ${mod.name}.`}
       actions={
         <div className="flex items-center gap-2">
           <button className="h-10 px-3.5 rounded-xl bg-surface border border-border text-sm font-medium text-foreground hover:bg-secondary flex items-center gap-2 transition-colors">
@@ -82,18 +85,41 @@ function AttachmentsPage() {
       </div>
 
       {/* Grid */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {tab === "documents" && attachments.documents.map((d) => (
-          <FileCard key={d.id} title={d.name} meta={`${d.type} · ${d.size} · ${d.updated}`} icon={<FileText className="h-5 w-5" />} accent="oklch(0.65 0.14 235)" />
-        ))}
-        {tab === "videos" && attachments.videos.map((v) => (
-          <VideoCard key={v.id} title={v.name} duration={v.duration} updated={v.updated} />
-        ))}
-        {tab === "ppts" && attachments.ppts.map((p) => (
-          <FileCard key={p.id} title={p.name} meta={`PPTX · ${p.size} · ${p.updated}`} icon={<Presentation className="h-5 w-5" />} accent="oklch(0.62 0.2 25)" />
-        ))}
-      </div>
+      {empty ? (
+        <EmptyState moduleName={mod.name} />
+      ) : (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {tab === "documents" && att.documents.map((d) => (
+            <FileCard key={d.id} title={d.name} meta={`${d.type} · ${d.size} · ${d.updated}`} icon={<FileText className="h-5 w-5" />} accent="oklch(0.65 0.14 235)" />
+          ))}
+          {tab === "videos" && att.videos.map((v) => (
+            <VideoCard key={v.id} title={v.name} duration={v.duration} updated={v.updated} />
+          ))}
+          {tab === "ppts" && att.ppts.map((p) => (
+            <FileCard key={p.id} title={p.name} meta={`PPTX · ${p.size} · ${p.updated}`} icon={<Presentation className="h-5 w-5" />} accent="oklch(0.62 0.2 25)" />
+          ))}
+          {((tab === "documents" && att.documents.length === 0) ||
+            (tab === "videos" && att.videos.length === 0) ||
+            (tab === "ppts" && att.ppts.length === 0)) && (
+            <div className="col-span-full text-sm text-muted-foreground text-center py-10">
+              No {tab === "ppts" ? "presentations" : tab} yet for {mod.name}.
+            </div>
+          )}
+        </div>
+      )}
     </AppShell>
+  );
+}
+
+function EmptyState({ moduleName }: { moduleName: string }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-border bg-surface/40 p-12 text-center">
+      <div className="mx-auto h-12 w-12 rounded-2xl bg-secondary flex items-center justify-center">
+        <UploadCloud className="h-6 w-6 text-muted-foreground" />
+      </div>
+      <div className="mt-3 text-sm font-medium text-foreground">No attachments yet for {moduleName}</div>
+      <div className="text-xs text-muted-foreground mt-1">Upload your first document, video, or deck to get started.</div>
+    </div>
   );
 }
 

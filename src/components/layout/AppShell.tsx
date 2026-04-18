@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
 import { TopBar } from "./TopBar";
 import { Sidebar } from "./Sidebar";
+import { useModuleStore } from "@/lib/module-store";
 
 export function AppShell({ children, title, subtitle, actions }: { children: ReactNode; title?: string; subtitle?: string; actions?: ReactNode }) {
+  const { selectedId } = useModuleStore();
   return (
     <div className="min-h-screen bg-background">
       <TopBar />
@@ -19,7 +21,8 @@ export function AppShell({ children, title, subtitle, actions }: { children: Rea
                 {actions && <div className="flex items-center gap-2">{actions}</div>}
               </div>
             )}
-            <div className="animate-fade-in-up">{children}</div>
+            {/* key forces a remount on module change → triggers entry animation, gives "snappy" switching feel */}
+            <div key={selectedId} className="animate-fade-in-up">{children}</div>
           </div>
         </main>
       </div>

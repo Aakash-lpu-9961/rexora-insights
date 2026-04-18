@@ -8,7 +8,9 @@ import {
   GitPullRequest,
   Bot,
   Sparkles,
+  Settings as SettingsIcon,
 } from "lucide-react";
+import { useModuleStore } from "@/lib/module-store";
 
 type NavItem = { to: string; label: string; icon: typeof LayoutDashboard; highlight?: boolean };
 const nav: NavItem[] = [
@@ -24,6 +26,7 @@ const nav: NavItem[] = [
 export function Sidebar() {
   const location = useLocation();
   const path = location.pathname;
+  const { selected } = useModuleStore();
 
   return (
     <aside className="sticky top-16 h-[calc(100vh-4rem)] w-64 shrink-0 border-r border-sidebar-border bg-sidebar flex flex-col">
@@ -34,12 +37,15 @@ export function Sidebar() {
             <Sparkles className="h-3 w-3" />
             Active module
           </div>
-          <div className="mt-1.5 text-sm font-semibold text-sidebar-foreground">Bank Reconciliation</div>
+          <div className="mt-1.5 text-sm font-semibold text-sidebar-foreground truncate">{selected.name}</div>
           <div className="mt-2 flex items-center gap-2">
             <div className="flex-1 h-1.5 rounded-full bg-sidebar-border overflow-hidden">
-              <div className="h-full w-2/3 bg-primary rounded-full" />
+              <div
+                className="h-full bg-primary rounded-full transition-all duration-500"
+                style={{ width: `${selected.progress}%` }}
+              />
             </div>
-            <span className="text-[10px] font-medium text-muted-foreground">67%</span>
+            <span className="text-[10px] font-medium text-muted-foreground">{selected.progress}%</span>
           </div>
         </div>
       </div>
@@ -75,7 +81,24 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer */}
+      {/* Settings + Footer */}
+      <div className="px-3 pb-2">
+        <Link
+          to="/settings"
+          className={`group relative flex items-center gap-3 px-2.5 py-2 rounded-lg text-sm font-medium transition-all ${
+            path === "/settings"
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+          }`}
+        >
+          {path === "/settings" && (
+            <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r-full bg-primary" />
+          )}
+          <SettingsIcon className={`h-4 w-4 ${path === "/settings" ? "text-primary" : "text-muted-foreground group-hover:text-sidebar-foreground"} transition-colors`} />
+          <span>Settings</span>
+        </Link>
+      </div>
+
       <div className="p-3 border-t border-sidebar-border">
         <div className="rounded-xl bg-gradient-to-br from-primary to-[oklch(0.4_0.2_278)] p-3.5 text-primary-foreground relative overflow-hidden">
           <div className="absolute -top-4 -right-4 h-16 w-16 rounded-full bg-white/10 blur-xl" />
