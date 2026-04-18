@@ -10,7 +10,8 @@ import {
   Sparkles,
 } from "lucide-react";
 
-const nav = [
+type NavItem = { to: string; label: string; icon: typeof LayoutDashboard; highlight?: boolean };
+const nav: NavItem[] = [
   { to: "/", label: "Overview", icon: LayoutDashboard },
   { to: "/attachments", label: "Attachments", icon: Paperclip },
   { to: "/checklists", label: "Checklist Library", icon: ListChecks },
@@ -18,7 +19,7 @@ const nav = [
   { to: "/contacts", label: "Point of Contact", icon: Users },
   { to: "/tracking", label: "Tracking Requests", icon: GitPullRequest },
   { to: "/chat", label: "AI Chatbot", icon: Bot, highlight: true },
-] as const;
+];
 
 export function Sidebar() {
   const location = useLocation();
