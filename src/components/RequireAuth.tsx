@@ -14,11 +14,14 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     // Don't redirect from /login back to /login — the router is mid-transition
     // after sign-out and we briefly still render inside AppShell/RequireAuth.
     if (location.pathname === "/login") return;
+    // Preserve query string so post-login lands back on same filter/page state.
+    // Pile-up from nested `/login?redirect=/login?…` is prevented separately by
+    // validateSearch in src/routes/login.tsx.
     void navigate({
       to: "/login",
-      search: { redirect: location.pathname },
+      search: { redirect: location.pathname + (location.searchStr || "") },
     });
-  }, [isAuthenticated, initializing, navigate, location.pathname]);
+  }, [isAuthenticated, initializing, navigate, location.pathname, location.searchStr]);
 
   if (initializing) {
     return (
