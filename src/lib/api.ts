@@ -17,7 +17,13 @@ export const AUTH_STORAGE_KEY = "rexora.auth.v1";
 
 export type StoredAuth = {
   token: string;
-  user: { id: number; email: string; name: string };
+  user: {
+    id: number;
+    email: string;
+    name: string;
+    role?: "admin" | "user";
+    is_active?: boolean;
+  };
 };
 
 export function loadStoredAuth(): StoredAuth | null {

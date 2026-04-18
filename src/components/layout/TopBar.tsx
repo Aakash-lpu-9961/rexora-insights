@@ -1,4 +1,4 @@
-import { Search, Bell, ChevronDown, Sparkles, Command, Plus, LogOut } from "lucide-react";
+import { Search, Bell, ChevronDown, Sparkles, Command, Plus, LogOut, Shield } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useModuleStore } from "@/lib/module-store";
@@ -145,6 +145,15 @@ export function TopBar() {
                     </div>
                   </div>
                   <div className="h-px bg-border my-1" />
+                  {auth?.user?.role === "admin" && (
+                    <Link
+                      to="/admin"
+                      onClick={() => setProfileOpen(false)}
+                      className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm text-foreground hover:bg-accent transition-colors"
+                    >
+                      <Shield className="h-4 w-4" /> Admin panel
+                    </Link>
+                  )}
                   <button
                     onClick={() => {
                       setProfileOpen(false);

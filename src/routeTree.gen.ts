@@ -18,6 +18,13 @@ import { Route as ChatRouteImport } from './routes/chat'
 import { Route as CasesRouteImport } from './routes/cases'
 import { Route as AttachmentsRouteImport } from './routes/attachments'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminUsersRouteImport } from './routes/admin/users'
+import { Route as AdminModulesRouteImport } from './routes/admin/modules'
+import { Route as AdminChecklistsRouteImport } from './routes/admin/checklists'
+import { Route as AdminCasesRouteImport } from './routes/admin/cases'
+import { Route as AdminAuditRouteImport } from './routes/admin/audit'
+import { Route as AdminAiInsightsRouteImport } from './routes/admin/ai-insights'
 
 const TrackingRoute = TrackingRouteImport.update({
   id: '/tracking',
@@ -64,6 +71,41 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/admin/users',
+  path: '/admin/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminModulesRoute = AdminModulesRouteImport.update({
+  id: '/admin/modules',
+  path: '/admin/modules',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminChecklistsRoute = AdminChecklistsRouteImport.update({
+  id: '/admin/checklists',
+  path: '/admin/checklists',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCasesRoute = AdminCasesRouteImport.update({
+  id: '/admin/cases',
+  path: '/admin/cases',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAuditRoute = AdminAuditRouteImport.update({
+  id: '/admin/audit',
+  path: '/admin/audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAiInsightsRoute = AdminAiInsightsRouteImport.update({
+  id: '/admin/ai-insights',
+  path: '/admin/ai-insights',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -75,6 +117,13 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/tracking': typeof TrackingRoute
+  '/admin/ai-insights': typeof AdminAiInsightsRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/cases': typeof AdminCasesRoute
+  '/admin/checklists': typeof AdminChecklistsRoute
+  '/admin/modules': typeof AdminModulesRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -86,6 +135,13 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/tracking': typeof TrackingRoute
+  '/admin/ai-insights': typeof AdminAiInsightsRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/cases': typeof AdminCasesRoute
+  '/admin/checklists': typeof AdminChecklistsRoute
+  '/admin/modules': typeof AdminModulesRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/admin': typeof AdminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,6 +154,13 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/tracking': typeof TrackingRoute
+  '/admin/ai-insights': typeof AdminAiInsightsRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/cases': typeof AdminCasesRoute
+  '/admin/checklists': typeof AdminChecklistsRoute
+  '/admin/modules': typeof AdminModulesRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,6 +174,13 @@ export interface FileRouteTypes {
     | '/login'
     | '/settings'
     | '/tracking'
+    | '/admin/ai-insights'
+    | '/admin/audit'
+    | '/admin/cases'
+    | '/admin/checklists'
+    | '/admin/modules'
+    | '/admin/users'
+    | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,6 +192,13 @@ export interface FileRouteTypes {
     | '/login'
     | '/settings'
     | '/tracking'
+    | '/admin/ai-insights'
+    | '/admin/audit'
+    | '/admin/cases'
+    | '/admin/checklists'
+    | '/admin/modules'
+    | '/admin/users'
+    | '/admin'
   id:
     | '__root__'
     | '/'
@@ -133,6 +210,13 @@ export interface FileRouteTypes {
     | '/login'
     | '/settings'
     | '/tracking'
+    | '/admin/ai-insights'
+    | '/admin/audit'
+    | '/admin/cases'
+    | '/admin/checklists'
+    | '/admin/modules'
+    | '/admin/users'
+    | '/admin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -145,6 +229,13 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
   TrackingRoute: typeof TrackingRoute
+  AdminAiInsightsRoute: typeof AdminAiInsightsRoute
+  AdminAuditRoute: typeof AdminAuditRoute
+  AdminCasesRoute: typeof AdminCasesRoute
+  AdminChecklistsRoute: typeof AdminChecklistsRoute
+  AdminModulesRoute: typeof AdminModulesRoute
+  AdminUsersRoute: typeof AdminUsersRoute
+  AdminIndexRoute: typeof AdminIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -212,6 +303,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/modules': {
+      id: '/admin/modules'
+      path: '/admin/modules'
+      fullPath: '/admin/modules'
+      preLoaderRoute: typeof AdminModulesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/checklists': {
+      id: '/admin/checklists'
+      path: '/admin/checklists'
+      fullPath: '/admin/checklists'
+      preLoaderRoute: typeof AdminChecklistsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/cases': {
+      id: '/admin/cases'
+      path: '/admin/cases'
+      fullPath: '/admin/cases'
+      preLoaderRoute: typeof AdminCasesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/audit': {
+      id: '/admin/audit'
+      path: '/admin/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AdminAuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/ai-insights': {
+      id: '/admin/ai-insights'
+      path: '/admin/ai-insights'
+      fullPath: '/admin/ai-insights'
+      preLoaderRoute: typeof AdminAiInsightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -225,6 +365,13 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
   TrackingRoute: TrackingRoute,
+  AdminAiInsightsRoute: AdminAiInsightsRoute,
+  AdminAuditRoute: AdminAuditRoute,
+  AdminCasesRoute: AdminCasesRoute,
+  AdminChecklistsRoute: AdminChecklistsRoute,
+  AdminModulesRoute: AdminModulesRoute,
+  AdminUsersRoute: AdminUsersRoute,
+  AdminIndexRoute: AdminIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

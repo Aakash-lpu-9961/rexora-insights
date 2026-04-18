@@ -12,10 +12,14 @@ import {
   Lightbulb,
   StickyNote,
   AlertTriangle,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
 import { useActiveModule, type AIPayload } from "@/lib/module-store";
 import { useAuth } from "@/lib/auth-context";
 import { apiRequest, ApiError } from "@/lib/api";
+import { chatFeedback } from "@/lib/admin-api";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/chat")({
   component: ChatPage,
@@ -23,7 +27,15 @@ export const Route = createFileRoute("/chat")({
 
 type Msg =
   | { id: string; role: "user"; text: string }
-  | { id: string; role: "ai"; loading?: boolean; payload?: AIPayload; error?: string };
+  | {
+      id: string;
+      role: "ai";
+      loading?: boolean;
+      payload?: AIPayload;
+      error?: string;
+      logId?: number;
+      feedback?: "up" | "down" | null;
+    };
 
 function emptyPayload(notes: string): AIPayload {
   return { rootCauses: [], steps: [], similarCases: [], finalFix: "", notes };
@@ -52,6 +64,20 @@ function ChatPage() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
+  async function submitFeedback(msgId: string, logId: number, feedback: "up" | "down") {
+    try {
+      await chatFeedback(token, logId, feedback);
+      setMessages((m) =>
+        m.map((x) => (x.id === msgId && x.role === "ai" ? { ...x, feedback } : x)),
+      );
+      toast.success(
+        feedback === "up" ? "Marked helpful" : "Marked not helpful — thanks for the signal",
+      );
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
   async function send() {
     const text = input.trim();
     if (!text || !token || !mod.id) return;
@@ -64,12 +90,18 @@ function ChatPage() {
     ]);
     setInput("");
     try {
-      const payload = await apiRequest<AIPayload>("/api/chat", {
+      const resp = await apiRequest<{ log_id: number; response: AIPayload }>("/api/chat", {
         method: "POST",
         body: { module_id: mod.id, message: text },
         token,
       });
-      setMessages((m) => m.map((x) => (x.id === aiId ? { id: aiId, role: "ai", payload } : x)));
+      setMessages((m) =>
+        m.map((x) =>
+          x.id === aiId
+            ? { id: aiId, role: "ai", payload: resp.response, logId: resp.log_id, feedback: null }
+            : x,
+        ),
+      );
     } catch (e) {
       const msg = e instanceof ApiError ? e.message : (e as Error).message;
       setMessages((m) => m.map((x) => (x.id === aiId ? { id: aiId, role: "ai", error: msg } : x)));
@@ -88,7 +120,15 @@ function ChatPage() {
               m.role === "user" ? (
                 <UserBubble key={m.id} text={m.text} />
               ) : (
-                <AIBubble key={m.id} loading={m.loading} payload={m.payload} error={m.error} />
+                <AIBubble
+                  key={m.id}
+                  loading={m.loading}
+                  payload={m.payload}
+                  error={m.error}
+                  logId={m.logId}
+                  feedback={m.feedback ?? null}
+                  onFeedback={(fb) => m.logId && void submitFeedback(m.id, m.logId, fb)}
+                />
               ),
             )}
           </div>
@@ -173,10 +213,16 @@ function AIBubble({
   loading,
   payload,
   error,
+  logId,
+  feedback,
+  onFeedback,
 }: {
   loading?: boolean;
   payload?: AIPayload;
   error?: string;
+  logId?: number;
+  feedback?: "up" | "down" | null;
+  onFeedback?: (feedback: "up" | "down") => void;
 }) {
   return (
     <div className="flex items-start gap-3 animate-fade-in-up">
@@ -308,6 +354,42 @@ function AIBubble({
             )}
           </div>
         ) : null}
+        {!loading && !error && logId && onFeedback && (
+          <div className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
+            <span className="mr-1">Was this helpful?</span>
+            <button
+              type="button"
+              onClick={() => onFeedback("up")}
+              aria-pressed={feedback === "up"}
+              aria-label="Mark helpful"
+              className={`h-7 w-7 rounded-lg flex items-center justify-center transition-colors border ${
+                feedback === "up"
+                  ? "bg-success/15 text-success border-success/30"
+                  : "bg-transparent border-border hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              <ThumbsUp className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onFeedback("down")}
+              aria-pressed={feedback === "down"}
+              aria-label="Mark not helpful"
+              className={`h-7 w-7 rounded-lg flex items-center justify-center transition-colors border ${
+                feedback === "down"
+                  ? "bg-destructive/15 text-destructive border-destructive/30"
+                  : "bg-transparent border-border hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              <ThumbsDown className="h-3.5 w-3.5" />
+            </button>
+            {feedback && (
+              <span className="ml-2 text-[10px]">
+                {feedback === "up" ? "Marked helpful" : "Marked not helpful"}
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

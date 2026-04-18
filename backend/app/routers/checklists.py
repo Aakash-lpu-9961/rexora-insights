@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from ..audit import log_audit
 from ..auth import get_current_user
 from ..db import get_db
 from ..models import Checklist, Module, User
@@ -40,7 +41,7 @@ def create_checklist(
     module_id: str,
     payload: ChecklistCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ) -> ChecklistOut:
     _require_module(db, module_id)
     max_sort = (
@@ -58,6 +59,7 @@ def create_checklist(
         sort_order=int(max_sort) + 1,
     )
     db.add(c)
+    log_audit(db, actor=user, action="create", entity="checklist", entity_id=c.id, summary=f"Created checklist {c.title}")
     db.commit()
     db.refresh(c)
     return ChecklistOut.from_orm_checklist(c)
@@ -69,7 +71,7 @@ def update_checklist(
     checklist_id: str,
     payload: ChecklistUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ) -> ChecklistOut:
     c = db.get(Checklist, checklist_id)
     if not c or c.module_id != module_id:
@@ -79,6 +81,9 @@ def update_checklist(
         c.steps = [s if isinstance(s, dict) else s.model_dump() for s in data.pop("steps")]
     for k, v in data.items():
         setattr(c, k, v)
+    # Only audit meaningful edits (skip step-toggle churn).
+    if set(data.keys()) - {"steps"}:
+        log_audit(db, actor=user, action="update", entity="checklist", entity_id=c.id, summary=f"Updated checklist {c.title}")
     db.commit()
     db.refresh(c)
     return ChecklistOut.from_orm_checklist(c)
@@ -89,10 +94,12 @@ def delete_checklist(
     module_id: str,
     checklist_id: str,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ) -> None:
     c = db.get(Checklist, checklist_id)
     if not c or c.module_id != module_id:
         raise HTTPException(404, "Checklist not found")
+    title = c.title
     db.delete(c)
+    log_audit(db, actor=user, action="delete", entity="checklist", entity_id=checklist_id, summary=f"Deleted checklist {title}")
     db.commit()

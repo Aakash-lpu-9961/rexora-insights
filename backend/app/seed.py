@@ -17,6 +17,7 @@ from .models import (
     Checklist,
     Contact,
     Module,
+    ModuleTemplate,
     TrackingRequest,
     User,
 )
@@ -27,15 +28,106 @@ logger = logging.getLogger(__name__)
 def seed_if_empty(db: Session) -> None:
     settings = get_settings()
 
-    # --- Demo user ---
+    # --- Demo user + analyst user ---
     if not db.query(User).first():
         demo = User(
             email=settings.seed_demo_user_email,
             name=settings.seed_demo_user_name,
             hashed_password=hash_password(settings.seed_demo_user_password),
+            role="admin",
         )
         db.add(demo)
-        logger.info("Seeded demo user %s", settings.seed_demo_user_email)
+        logger.info("Seeded demo admin user %s", settings.seed_demo_user_email)
+    else:
+        # Back-fill: ensure the original demo user becomes an admin on upgrade.
+        existing_demo = db.query(User).filter(User.email == settings.seed_demo_user_email).first()
+        if existing_demo and existing_demo.role != "admin":
+            existing_demo.role = "admin"
+            logger.info("Promoted existing demo user to admin")
+
+    if not db.query(User).filter(User.email == "analyst@rexora.io").first():
+        analyst = User(
+            email="analyst@rexora.io",
+            name="Rexora Analyst",
+            hashed_password=hash_password("rexora-analyst"),
+            role="user",
+        )
+        db.add(analyst)
+        logger.info("Seeded analyst user analyst@rexora.io")
+
+    # --- Module template (idempotent) ---
+    if not db.query(ModuleTemplate).first():
+        db.add(
+            ModuleTemplate(
+                id="finance-module-starter",
+                name="Finance Module Starter",
+                description="Ready-made scaffold for a new finance module — overview, two checklists, a sample case, and an ops POC.",
+                short="FMS",
+                color="oklch(0.6 0.18 230)",
+                overview={
+                    "tagline": "A new finance module, structured from day one.",
+                    "heroLead": "Production · scaffold",
+                    "heroBody": (
+                        "Use this as a starting point when spinning up a new finance module. Replace the placeholder "
+                        "copy, fill in real checklists, and import past cases via CSV."
+                    ),
+                    "chips": ["Scaffold", "Editable"],
+                    "stats": [],
+                    "sections": [
+                        {
+                            "id": "about",
+                            "iconKey": "workflow",
+                            "title": "How it works",
+                            "body": "Describe the module's role inside Voyager 7S: inputs, outputs, and critical dependencies.",
+                        },
+                    ],
+                    "featuredVideo": {"title": "", "duration": "", "description": ""},
+                },
+                chat_greeting="Hi — I'm Rexora AI. Describe your issue and I'll triage.",
+                chat_suggestions=[
+                    "Pipeline failed overnight.",
+                    "Throughput dropped after last release.",
+                ],
+                checklists=[
+                    {
+                        "title": "Incoming issue — first pass",
+                        "description": "Standard first-look checks for any new incident.",
+                        "steps": [
+                            {"id": "s1", "label": "Capture exact error / symptom", "done": False},
+                            {"id": "s2", "label": "Check last successful run timestamp", "done": False},
+                            {"id": "s3", "label": "Confirm upstream feeds", "done": False},
+                        ],
+                    },
+                    {
+                        "title": "Data integrity sanity check",
+                        "description": "Verify inputs and outputs are trustworthy before deeper triage.",
+                        "steps": [
+                            {"id": "s1", "label": "Row count delta vs previous run", "done": False},
+                            {"id": "s2", "label": "Schema diff vs last deploy", "done": False},
+                        ],
+                    },
+                ],
+                cases=[
+                    {
+                        "summary": "Example: upstream feed paused during maintenance",
+                        "root_cause": "Vendor's scheduled maintenance window was not communicated.",
+                        "resolution": "Replayed the feed after maintenance ended; added maintenance-calendar sync.",
+                        "tags": ["Example", "Upstream"],
+                        "priority": "Medium",
+                    },
+                ],
+                contacts=[
+                    {
+                        "name": "Ops Lead (placeholder)",
+                        "team": "Operations",
+                        "role": "Module ops lead",
+                        "email": "ops@rexora.io",
+                        "initials": "OL",
+                    },
+                ],
+            )
+        )
+        logger.info("Seeded finance-module-starter template")
 
     # --- Modules ---
     if db.query(Module).first():

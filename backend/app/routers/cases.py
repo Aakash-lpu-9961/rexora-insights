@@ -5,6 +5,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from ..audit import log_audit
 from ..auth import get_current_user
 from ..db import get_db
 from ..models import Case, Module, User
@@ -36,7 +37,7 @@ def create_case(
     module_id: str,
     payload: CaseCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ) -> CaseOut:
     _require_module(db, module_id)
     cid = payload.id or f"CASE-{uuid.uuid4().hex[:6].upper()}"
@@ -45,6 +46,7 @@ def create_case(
     data = payload.model_dump(exclude={"id"})
     c = Case(id=cid, module_id=module_id, **data)
     db.add(c)
+    log_audit(db, actor=user, action="create", entity="case", entity_id=cid, summary=f"Created case {c.summary[:80]}")
     db.commit()
     db.refresh(c)
     return CaseOut.model_validate(c)
@@ -56,7 +58,7 @@ def update_case(
     case_id: str,
     payload: CaseUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ) -> CaseOut:
     c = db.get(Case, case_id)
     if not c or c.module_id != module_id:
@@ -64,6 +66,7 @@ def update_case(
     data = payload.model_dump(exclude_unset=True)
     for k, v in data.items():
         setattr(c, k, v)
+    log_audit(db, actor=user, action="update", entity="case", entity_id=c.id, summary=f"Updated case {c.id}")
     db.commit()
     db.refresh(c)
     return CaseOut.model_validate(c)
@@ -74,10 +77,12 @@ def delete_case(
     module_id: str,
     case_id: str,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ) -> None:
     c = db.get(Case, case_id)
     if not c or c.module_id != module_id:
         raise HTTPException(404, "Case not found")
+    summary = c.summary
     db.delete(c)
+    log_audit(db, actor=user, action="delete", entity="case", entity_id=case_id, summary=f"Deleted case {summary[:80]}")
     db.commit()
