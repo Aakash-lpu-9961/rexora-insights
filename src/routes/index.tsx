@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/AppShell";
 import { useState } from "react";
 import { Play, ChevronDown, BookOpen, Workflow, Lightbulb, ArrowUpRight, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { useActiveModule } from "@/lib/module-store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -13,39 +14,21 @@ export const Route = createFileRoute("/")({
   component: OverviewPage,
 });
 
-const sections = [
-  {
-    id: "func",
-    icon: Workflow,
-    title: "How it works in Voyager 7S",
-    body: "The Bank Reconciliation engine ingests bank statements (MT940, CAMT.053, BAI2), normalizes them into a canonical ledger, then runs a multi-pass matching pipeline against your GL entries. Unmatched items flow into the triage queue with AI-suggested resolutions.",
-  },
-  {
-    id: "usage",
-    icon: Lightbulb,
-    title: "Real-life usage examples",
-    body: "Treasury ops uses Rexora to reconcile 14M+ daily transactions across 47 banking partners. Engineers triage import failures, FX mismatches, and posting anomalies — typically resolving incidents 3.4x faster than the legacy console.",
-  },
-  {
-    id: "func2",
-    icon: BookOpen,
-    title: "Module functionality",
-    body: "Auto-match engine, tolerance configuration per pool, FX snapshot scheduling, idempotent journal posting, unmatched triage workflow, and full audit trail with point-in-time replay.",
-  },
-];
-
-const stats = [
-  { label: "Open cases", value: "12", trend: "+2", icon: AlertCircle, tone: "warning" as const },
-  { label: "Resolved this week", value: "47", trend: "+18%", icon: CheckCircle2, tone: "success" as const },
-  { label: "Avg. resolution", value: "38m", trend: "-12m", icon: Clock, tone: "info" as const },
-];
+const ICONS = { workflow: Workflow, lightbulb: Lightbulb, book: BookOpen };
+const TONE = {
+  success: { icon: CheckCircle2, cls: "text-success bg-success/10" },
+  warning: { icon: AlertCircle, cls: "text-warning bg-warning/10" },
+  info: { icon: Clock, cls: "text-info bg-info/10" },
+} as const;
 
 function OverviewPage() {
-  const [open, setOpen] = useState<string | null>("func");
+  const mod = useActiveModule();
+  const ov = mod.data.overview;
+  const [open, setOpen] = useState<string | null>(ov.sections[0]?.id ?? null);
 
   return (
     <AppShell
-      title="Bank Reconciliation"
+      title={mod.name}
       subtitle="Module overview, business purpose & how it operates inside Voyager 7S."
       actions={
         <button className="h-10 px-4 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 shadow-[var(--shadow-elevated)] flex items-center gap-2 transition-opacity">
@@ -61,31 +44,27 @@ function OverviewPage() {
           <div className="md:col-span-2">
             <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-surface border border-border text-[11px] font-medium text-muted-foreground mb-3">
               <span className="h-1.5 w-1.5 rounded-full bg-success animate-[pulse-dot_1.6s_infinite]" />
-              Production · v7.4.2
+              {ov.heroLead}
             </div>
             <h2 className="text-3xl font-semibold tracking-tight text-foreground leading-tight">
-              The reconciliation backbone of <span className="gradient-text">Voyager 7S</span>.
+              <span className="gradient-text">{ov.tagline}</span>
             </h2>
             <p className="mt-3 text-[15px] text-muted-foreground leading-relaxed max-w-2xl">
-              Bank Reconciliation matches millions of bank-side transactions against ledger entries each day,
-              flags anomalies, and proposes AI-driven fixes. This module is the most critical leg of the close cycle.
+              {ov.heroBody}
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
-              {["Auto-match", "FX-aware", "Multi-currency", "Real-time", "Audit-grade"].map((t) => (
+              {ov.chips.map((t) => (
                 <span key={t} className="px-2.5 py-1 rounded-lg bg-surface border border-border text-xs text-foreground font-medium">{t}</span>
               ))}
             </div>
           </div>
           <div className="grid gap-3">
-            {stats.map((s) => {
-              const Icon = s.icon;
-              const tone = s.tone === "success" ? "text-success bg-success/10"
-                : s.tone === "warning" ? "text-warning bg-warning/10"
-                : "text-info bg-info/10";
+            {ov.stats.map((s) => {
+              const Icon = TONE[s.tone].icon;
               return (
                 <div key={s.label} className="rounded-xl bg-surface border border-border p-4 hover-lift">
                   <div className="flex items-center justify-between">
-                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${tone}`}>
+                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${TONE[s.tone].cls}`}>
                       <Icon className="h-4 w-4" />
                     </div>
                     <span className="text-[11px] font-medium text-muted-foreground">{s.trend}</span>
@@ -102,8 +81,8 @@ function OverviewPage() {
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Expandable sections */}
         <div className="lg:col-span-2 space-y-3">
-          {sections.map((s) => {
-            const Icon = s.icon;
+          {ov.sections.map((s) => {
+            const Icon = ICONS[s.iconKey];
             const isOpen = open === s.id;
             return (
               <div key={s.id} className="rounded-xl border border-border bg-surface overflow-hidden transition-all">
@@ -136,13 +115,13 @@ function OverviewPage() {
             <button className="relative h-16 w-16 rounded-full bg-white/95 flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform">
               <Play className="h-7 w-7 text-primary ml-1" fill="currentColor" />
             </button>
-            <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded-md bg-black/60 text-white text-[11px] font-medium">12:48</div>
+            <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded-md bg-black/60 text-white text-[11px] font-medium">{ov.featuredVideo.duration}</div>
           </div>
           <div className="p-5">
             <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Featured tutorial</div>
-            <div className="mt-1.5 text-[15px] font-semibold text-foreground">Auto-match Engine Deep Dive</div>
+            <div className="mt-1.5 text-[15px] font-semibold text-foreground">{ov.featuredVideo.title}</div>
             <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
-              Walks through how the matching pipeline scores candidate pairs, applies tolerances, and falls back to AI suggestions.
+              {ov.featuredVideo.description}
             </p>
             <button className="mt-4 text-xs font-medium text-primary hover:underline flex items-center gap-1">
               Open in library <ArrowUpRight className="h-3.5 w-3.5" />

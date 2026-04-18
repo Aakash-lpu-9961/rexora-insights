@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/AppShell";
 import { useState } from "react";
-import { Search, Plus, X } from "lucide-react";
-import { trackingRequests } from "@/lib/mock-data";
+import { Search, Plus, X, GitPullRequest } from "lucide-react";
+import { useActiveModule } from "@/lib/module-store";
 
 export const Route = createFileRoute("/tracking")({
   head: () => ({
@@ -22,10 +22,12 @@ const statusStyles: Record<string, string> = {
 };
 
 function TrackingPage() {
+  const mod = useActiveModule();
+  const trs = mod.data.tracking;
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
 
-  const filtered = trackingRequests.filter(
+  const filtered = trs.filter(
     (t) =>
       t.title.toLowerCase().includes(q.toLowerCase()) ||
       t.id.toLowerCase().includes(q.toLowerCase())
@@ -34,7 +36,7 @@ function TrackingPage() {
   return (
     <AppShell
       title="Tracking Requests"
-      subtitle="Engineering & ops requests under active tracking."
+      subtitle={`Engineering & ops requests under active tracking for ${mod.name}.`}
       actions={
         <button
           onClick={() => setOpen(true)}
@@ -53,30 +55,40 @@ function TrackingPage() {
         />
       </div>
 
-      <div className="space-y-3">
-        {filtered.map((t) => (
-          <div key={t.id} className="rounded-2xl border border-border bg-surface p-5 hover-lift">
-            <div className="flex items-start gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="text-[11px] font-mono font-semibold text-muted-foreground">{t.id}</span>
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${statusStyles[t.status]}`}>
-                    {t.status}
-                  </span>
-                </div>
-                <div className="text-[15px] font-semibold text-foreground">{t.title}</div>
-                <p className="text-sm text-muted-foreground mt-1">{t.description}</p>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {t.tags.map((tag) => (
-                    <span key={tag} className="px-2 py-0.5 rounded-md bg-secondary text-[11px] text-foreground/80 font-medium">{tag}</span>
-                  ))}
-                </div>
-              </div>
-              <button className="h-9 px-3 rounded-lg border border-border hover:bg-secondary text-foreground text-xs font-medium transition-colors">View</button>
-            </div>
+      {trs.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border bg-surface/40 p-12 text-center">
+          <div className="mx-auto h-12 w-12 rounded-2xl bg-secondary flex items-center justify-center">
+            <GitPullRequest className="h-6 w-6 text-muted-foreground" />
           </div>
-        ))}
-      </div>
+          <div className="mt-3 text-sm font-medium text-foreground">No tracking requests yet for {mod.name}</div>
+          <div className="text-xs text-muted-foreground mt-1">Open your first TR to start tracking work.</div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((t) => (
+            <div key={t.id} className="rounded-2xl border border-border bg-surface p-5 hover-lift">
+              <div className="flex items-start gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-[11px] font-mono font-semibold text-muted-foreground">{t.id}</span>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${statusStyles[t.status]}`}>
+                      {t.status}
+                    </span>
+                  </div>
+                  <div className="text-[15px] font-semibold text-foreground">{t.title}</div>
+                  <p className="text-sm text-muted-foreground mt-1">{t.description}</p>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {t.tags.map((tag) => (
+                      <span key={tag} className="px-2 py-0.5 rounded-md bg-secondary text-[11px] text-foreground/80 font-medium">{tag}</span>
+                    ))}
+                  </div>
+                </div>
+                <button className="h-9 px-3 rounded-lg border border-border hover:bg-secondary text-foreground text-xs font-medium transition-colors">View</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
