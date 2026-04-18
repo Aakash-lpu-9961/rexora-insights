@@ -32,7 +32,13 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24
 
-    cors_allow_origins: str = "http://localhost:5173,http://localhost:4173"
+    cors_allow_origins: str = (
+        "http://localhost:5173,http://localhost:4173,"
+        "https://dist-lwtnobaf.devinapps.com"
+    )
+    # Accept any devinapps.com preview subdomain so future frontend rebuilds
+    # (which produce a new random subdomain) don't require a backend redeploy.
+    cors_allow_origin_regex: str = r"https://[a-z0-9-]+\.devinapps\.com"
 
     openai_api_key: str | None = None
     openai_model: str = "gpt-4o-mini"
