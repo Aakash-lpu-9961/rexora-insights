@@ -1,16 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/AppShell";
 import { useState } from "react";
-import { Play, ChevronDown, BookOpen, Workflow, Lightbulb, ArrowUpRight, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import {
+  Play,
+  ChevronDown,
+  BookOpen,
+  Workflow,
+  Lightbulb,
+  ArrowUpRight,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+} from "lucide-react";
 import { useActiveModule } from "@/lib/module-store";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Overview — Rexora" },
-      { name: "description", content: "Rexora overview: module purpose, functionality, and tutorials." },
-    ],
-  }),
   component: OverviewPage,
 });
 
@@ -54,7 +58,12 @@ function OverviewPage() {
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               {ov.chips.map((t) => (
-                <span key={t} className="px-2.5 py-1 rounded-lg bg-surface border border-border text-xs text-foreground font-medium">{t}</span>
+                <span
+                  key={t}
+                  className="px-2.5 py-1 rounded-lg bg-surface border border-border text-xs text-foreground font-medium"
+                >
+                  {t}
+                </span>
               ))}
             </div>
           </div>
@@ -62,9 +71,14 @@ function OverviewPage() {
             {ov.stats.map((s) => {
               const Icon = TONE[s.tone].icon;
               return (
-                <div key={s.label} className="rounded-xl bg-surface border border-border p-4 hover-lift">
+                <div
+                  key={s.label}
+                  className="rounded-xl bg-surface border border-border p-4 hover-lift"
+                >
                   <div className="flex items-center justify-between">
-                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${TONE[s.tone].cls}`}>
+                    <div
+                      className={`h-8 w-8 rounded-lg flex items-center justify-center ${TONE[s.tone].cls}`}
+                    >
                       <Icon className="h-4 w-4" />
                     </div>
                     <span className="text-[11px] font-medium text-muted-foreground">{s.trend}</span>
@@ -85,7 +99,10 @@ function OverviewPage() {
             const Icon = ICONS[s.iconKey];
             const isOpen = open === s.id;
             return (
-              <div key={s.id} className="rounded-xl border border-border bg-surface overflow-hidden transition-all">
+              <div
+                key={s.id}
+                className="rounded-xl border border-border bg-surface overflow-hidden transition-all"
+              >
                 <button
                   onClick={() => setOpen(isOpen ? null : s.id)}
                   className="w-full flex items-center gap-4 p-5 text-left hover:bg-secondary/40 transition-colors"
@@ -96,11 +113,15 @@ function OverviewPage() {
                   <div className="flex-1">
                     <div className="text-[15px] font-semibold text-foreground">{s.title}</div>
                   </div>
-                  <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                  <ChevronDown
+                    className={`h-5 w-5 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`}
+                  />
                 </button>
                 {isOpen && (
                   <div className="px-5 pb-5 -mt-1 animate-fade-in">
-                    <div className="pl-14 text-sm text-muted-foreground leading-relaxed">{s.body}</div>
+                    <div className="pl-14 text-sm text-muted-foreground leading-relaxed">
+                      {s.body}
+                    </div>
                   </div>
                 )}
               </div>
@@ -115,11 +136,17 @@ function OverviewPage() {
             <button className="relative h-16 w-16 rounded-full bg-white/95 flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform">
               <Play className="h-7 w-7 text-primary ml-1" fill="currentColor" />
             </button>
-            <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded-md bg-black/60 text-white text-[11px] font-medium">{ov.featuredVideo.duration}</div>
+            <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded-md bg-black/60 text-white text-[11px] font-medium">
+              {ov.featuredVideo.duration}
+            </div>
           </div>
           <div className="p-5">
-            <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Featured tutorial</div>
-            <div className="mt-1.5 text-[15px] font-semibold text-foreground">{ov.featuredVideo.title}</div>
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+              Featured tutorial
+            </div>
+            <div className="mt-1.5 text-[15px] font-semibold text-foreground">
+              {ov.featuredVideo.title}
+            </div>
             <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
               {ov.featuredVideo.description}
             </p>

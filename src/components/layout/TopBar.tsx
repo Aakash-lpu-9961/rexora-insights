@@ -1,12 +1,28 @@
-import { Search, Bell, ChevronDown, Sparkles, Command, Plus } from "lucide-react";
+import { Search, Bell, ChevronDown, Sparkles, Command, Plus, LogOut } from "lucide-react";
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useModuleStore } from "@/lib/module-store";
+import { useAuth } from "@/lib/auth-context";
+
+function userInitials(name: string) {
+  return (
+    (name || "U")
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase() ?? "")
+      .join("") || "U"
+  );
+}
 
 export function TopBar() {
   const { modules, selected, setSelectedId } = useModuleStore();
+  const { auth, logout } = useAuth();
+  const navigate = useNavigate();
   const [moduleOpen, setModuleOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+
+  const displayName = auth?.user?.name || auth?.user?.email || "Signed in";
 
   return (
     <header className="sticky top-0 z-40 h-16 border-b border-border glass">
@@ -53,7 +69,9 @@ export function TopBar() {
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setModuleOpen(false)} />
                 <div className="absolute right-0 mt-2 w-72 rounded-xl border border-border bg-popover shadow-[var(--shadow-floating)] p-1.5 animate-scale-in origin-top-right z-50">
-                  <div className="px-2.5 py-1.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Switch module</div>
+                  <div className="px-2.5 py-1.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                    Switch module
+                  </div>
                   <div className="max-h-72 overflow-y-auto scrollbar-thin">
                     {modules.map((m) => (
                       <button
@@ -63,12 +81,19 @@ export function TopBar() {
                           setModuleOpen(false);
                         }}
                         className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm hover:bg-accent transition-colors ${
-                          m.id === selected.id ? "bg-accent text-accent-foreground" : "text-foreground"
+                          m.id === selected.id
+                            ? "bg-accent text-accent-foreground"
+                            : "text-foreground"
                         }`}
                       >
-                        <span className="h-2 w-2 rounded-full shrink-0" style={{ background: m.color }} />
+                        <span
+                          className="h-2 w-2 rounded-full shrink-0"
+                          style={{ background: m.color }}
+                        />
                         <span className="font-medium truncate">{m.name}</span>
-                        <span className="ml-auto text-[10px] font-mono text-muted-foreground">{m.short}</span>
+                        <span className="ml-auto text-[10px] font-mono text-muted-foreground">
+                          {m.short}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -97,22 +122,41 @@ export function TopBar() {
               className="h-10 pl-1 pr-3 rounded-xl hover:bg-secondary flex items-center gap-2 transition-colors"
             >
               <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[oklch(0.6_0.2_220)] to-primary text-primary-foreground flex items-center justify-center text-xs font-semibold">
-                AM
+                {userInitials(displayName)}
               </div>
-              <div className="hidden md:block text-left leading-tight">
-                <div className="text-xs font-medium text-foreground">Aakash Kumar</div>
-                <div className="text-[10px] text-muted-foreground">Tech Lead</div>
+              <div className="hidden md:block text-left leading-tight max-w-[160px]">
+                <div className="text-xs font-medium text-foreground truncate">{displayName}</div>
+                <div className="text-[10px] text-muted-foreground truncate">
+                  {auth?.user?.email}
+                </div>
               </div>
               <ChevronDown className="h-4 w-4 text-muted-foreground hidden md:block" />
             </button>
             {profileOpen && (
-              <div className="absolute right-0 mt-2 w-56 rounded-xl border border-border bg-popover shadow-[var(--shadow-floating)] p-1.5 animate-scale-in origin-top-right z-50">
-                {["Profile", "Preferences", "Keyboard shortcuts", "Sign out"].map((item) => (
-                  <button key={item} className="w-full text-left px-2.5 py-2 rounded-lg text-sm hover:bg-accent text-foreground transition-colors">
-                    {item}
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
+                <div className="absolute right-0 mt-2 w-56 rounded-xl border border-border bg-popover shadow-[var(--shadow-floating)] p-1.5 animate-scale-in origin-top-right z-50">
+                  <div className="px-2.5 py-2">
+                    <div className="text-sm font-medium text-foreground truncate">
+                      {displayName}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground truncate">
+                      {auth?.user?.email}
+                    </div>
+                  </div>
+                  <div className="h-px bg-border my-1" />
+                  <button
+                    onClick={() => {
+                      setProfileOpen(false);
+                      logout();
+                      void navigate({ to: "/login", search: { redirect: "/" } });
+                    }}
+                    className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm text-foreground hover:bg-accent transition-colors"
+                  >
+                    <LogOut className="h-4 w-4" /> Sign out
                   </button>
-                ))}
-              </div>
+                </div>
+              </>
             )}
           </div>
         </div>

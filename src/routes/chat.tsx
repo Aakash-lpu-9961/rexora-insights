@@ -1,25 +1,37 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/AppShell";
 import { useEffect, useRef, useState } from "react";
-import { Send, Sparkles, Bot, User, Search, ListChecks, FileText, Lightbulb, StickyNote } from "lucide-react";
+import {
+  Send,
+  Sparkles,
+  Bot,
+  User,
+  Search,
+  ListChecks,
+  FileText,
+  Lightbulb,
+  StickyNote,
+  AlertTriangle,
+} from "lucide-react";
 import { useActiveModule, type AIPayload } from "@/lib/module-store";
+import { useAuth } from "@/lib/auth-context";
+import { apiRequest, ApiError } from "@/lib/api";
 
 export const Route = createFileRoute("/chat")({
-  head: () => ({
-    meta: [
-      { title: "AI Chatbot — Rexora" },
-      { name: "description", content: "Conversational AI to triage and resolve issues fast." },
-    ],
-  }),
   component: ChatPage,
 });
 
 type Msg =
   | { id: string; role: "user"; text: string }
-  | { id: string; role: "ai"; loading?: boolean; payload?: AIPayload };
+  | { id: string; role: "ai"; loading?: boolean; payload?: AIPayload; error?: string };
+
+function emptyPayload(notes: string): AIPayload {
+  return { rootCauses: [], steps: [], similarCases: [], finalFix: "", notes };
+}
 
 function ChatPage() {
   const mod = useActiveModule();
+  const { token } = useAuth();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -30,43 +42,54 @@ function ChatPage() {
       {
         id: `m0-${mod.id}`,
         role: "ai",
-        payload: {
-          rootCauses: [],
-          steps: [],
-          similarCases: [],
-          finalFix: "",
-          notes: mod.data.chatGreeting,
-        },
+        payload: emptyPayload(mod.data.chatGreeting || `Ask anything about ${mod.name}.`),
       },
     ]);
     setInput("");
-  }, [mod.id, mod.data.chatGreeting]);
+  }, [mod.id, mod.data.chatGreeting, mod.name]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  const send = () => {
+  async function send() {
     const text = input.trim();
-    if (!text) return;
+    if (!text || !token || !mod.id) return;
     const userId = `u${Date.now()}`;
     const aiId = `a${Date.now()}`;
-    setMessages((m) => [...m, { id: userId, role: "user", text }, { id: aiId, role: "ai", loading: true }]);
+    setMessages((m) => [
+      ...m,
+      { id: userId, role: "user", text },
+      { id: aiId, role: "ai", loading: true },
+    ]);
     setInput("");
-
-    const seed = mod.data.chatSeed;
-    setTimeout(() => {
-      setMessages((m) => m.map((x) => (x.id === aiId ? { id: aiId, role: "ai", payload: seed } : x)));
-    }, 1600);
-  };
+    try {
+      const payload = await apiRequest<AIPayload>("/api/chat", {
+        method: "POST",
+        body: { module_id: mod.id, message: text },
+        token,
+      });
+      setMessages((m) => m.map((x) => (x.id === aiId ? { id: aiId, role: "ai", payload } : x)));
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : (e as Error).message;
+      setMessages((m) => m.map((x) => (x.id === aiId ? { id: aiId, role: "ai", error: msg } : x)));
+    }
+  }
 
   return (
-    <AppShell title="AI Chatbot" subtitle={`Rexora AI · trained on ${mod.name} cases, checklists & telemetry.`}>
+    <AppShell
+      title="AI Chatbot"
+      subtitle={`Rexora AI · trained on ${mod.name} cases, checklists & telemetry.`}
+    >
       <div className="grid lg:grid-cols-[1fr_320px] gap-6">
         <div className="rounded-2xl border border-border bg-surface flex flex-col h-[calc(100vh-220px)] overflow-hidden">
           <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin p-6 space-y-5">
             {messages.map((m) =>
-              m.role === "user" ? <UserBubble key={m.id} text={m.text} /> : <AIBubble key={m.id} loading={m.loading} payload={m.payload} />
+              m.role === "user" ? (
+                <UserBubble key={m.id} text={m.text} />
+              ) : (
+                <AIBubble key={m.id} loading={m.loading} payload={m.payload} error={m.error} />
+              ),
             )}
           </div>
           <div className="border-t border-border p-4 bg-surface">
@@ -75,14 +98,17 @@ function ChatPage() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    void send();
+                  }
                 }}
                 rows={1}
                 placeholder={`Describe a ${mod.name} issue…`}
                 className="flex-1 resize-none bg-transparent px-3 py-2 outline-none text-sm placeholder:text-muted-foreground max-h-32"
               />
               <button
-                onClick={send}
+                onClick={() => void send()}
                 disabled={!input.trim()}
                 className="h-9 w-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity shrink-0"
               >
@@ -90,7 +116,9 @@ function ChatPage() {
               </button>
             </div>
             <div className="mt-2 px-1 flex items-center gap-3 text-[11px] text-muted-foreground">
-              <span className="flex items-center gap-1"><Sparkles className="h-3 w-3 text-primary" /> Rexora AI · {mod.name} context</span>
+              <span className="flex items-center gap-1">
+                <Sparkles className="h-3 w-3 text-primary" /> Rexora AI · {mod.name} context
+              </span>
               <span className="ml-auto">Press Enter to send · Shift+Enter for newline</span>
             </div>
           </div>
@@ -99,7 +127,9 @@ function ChatPage() {
         {/* Side helper */}
         <aside className="space-y-4">
           <div className="rounded-2xl border border-border bg-surface p-5">
-            <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Try asking</div>
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+              Try asking
+            </div>
             <div className="mt-3 space-y-2">
               {mod.data.chatSuggestions.map((s) => (
                 <button
@@ -116,7 +146,8 @@ function ChatPage() {
             <Sparkles className="h-5 w-5 text-primary" />
             <div className="mt-2 text-sm font-semibold text-foreground">Powered by your data</div>
             <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
-              Rexora cross-references {mod.name} checklists, past cases, and runtime telemetry to ground every answer.
+              Rexora cross-references {mod.name} checklists, past cases, and runtime telemetry to
+              ground every answer.
             </p>
           </div>
         </aside>
@@ -128,7 +159,7 @@ function ChatPage() {
 function UserBubble({ text }: { text: string }) {
   return (
     <div className="flex items-start gap-3 justify-end animate-fade-in-up">
-      <div className="max-w-[75%] rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-4 py-2.5 text-sm shadow-[var(--shadow-soft)]">
+      <div className="max-w-[75%] rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-4 py-2.5 text-sm shadow-[var(--shadow-soft)] whitespace-pre-wrap">
         {text}
       </div>
       <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-[oklch(0.6_0.2_220)] to-primary text-primary-foreground flex items-center justify-center shrink-0">
@@ -138,7 +169,15 @@ function UserBubble({ text }: { text: string }) {
   );
 }
 
-function AIBubble({ loading, payload }: { loading?: boolean; payload?: AIPayload }) {
+function AIBubble({
+  loading,
+  payload,
+  error,
+}: {
+  loading?: boolean;
+  payload?: AIPayload;
+  error?: string;
+}) {
   return (
     <div className="flex items-start gap-3 animate-fade-in-up">
       <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-primary to-[oklch(0.4_0.2_278)] text-primary-foreground flex items-center justify-center shrink-0 shadow-[var(--shadow-elevated)]">
@@ -149,41 +188,68 @@ function AIBubble({ loading, payload }: { loading?: boolean; payload?: AIPayload
           <div className="rounded-2xl rounded-tl-sm bg-secondary border border-border px-4 py-3">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span className="font-medium text-foreground">Analyzing</span>
-              <span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" />
+              <span className="typing-dot" />
+              <span className="typing-dot" />
+              <span className="typing-dot" />
             </div>
           </div>
+        ) : error ? (
+          <div className="rounded-2xl rounded-tl-sm bg-destructive/10 border border-destructive/30 px-4 py-2.5 text-sm text-destructive flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>{error}</span>
+          </div>
         ) : payload && payload.rootCauses.length === 0 && !payload.finalFix ? (
-          <div className="rounded-2xl rounded-tl-sm bg-secondary border border-border px-4 py-2.5 text-sm text-foreground">
+          <div className="rounded-2xl rounded-tl-sm bg-secondary border border-border px-4 py-2.5 text-sm text-foreground whitespace-pre-wrap">
             {payload.notes}
           </div>
         ) : payload ? (
           <div className="space-y-3">
-            <Section icon={<Search className="h-4 w-4" />} title="Root Causes" delay={0}>
-              <div className="space-y-2">
-                {payload.rootCauses.map((rc, i) => (
-                  <div key={i} className="rounded-xl border border-border bg-surface p-3">
-                    <div className="flex items-center justify-between gap-3 mb-1.5">
-                      <div className="text-sm font-medium text-foreground">{rc.label}</div>
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${
-                        rc.confidence > 70 ? "bg-success/15 text-success" : rc.confidence > 30 ? "bg-warning/15 text-[oklch(0.45_0.15_75)]" : "bg-secondary text-muted-foreground"
-                      }`}>
-                        {rc.confidence}% confidence
-                      </span>
+            {payload.rootCauses.length > 0 && (
+              <Section icon={<Search className="h-4 w-4" />} title="Root Causes" delay={0}>
+                <div className="space-y-2">
+                  {payload.rootCauses.map((rc, i) => (
+                    <div key={i} className="rounded-xl border border-border bg-surface p-3">
+                      <div className="flex items-center justify-between gap-3 mb-1.5">
+                        <div className="text-sm font-medium text-foreground">{rc.label}</div>
+                        <span
+                          className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${
+                            rc.confidence > 70
+                              ? "bg-success/15 text-success"
+                              : rc.confidence > 30
+                                ? "bg-warning/15 text-[oklch(0.45_0.15_75)]"
+                                : "bg-secondary text-muted-foreground"
+                          }`}
+                        >
+                          {rc.confidence}% confidence
+                        </span>
+                      </div>
+                      <div className="h-1 rounded-full bg-secondary overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-primary to-[oklch(0.65_0.18_220)] rounded-full"
+                          style={{ width: `${rc.confidence}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-1 rounded-full bg-secondary overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-primary to-[oklch(0.65_0.18_220)] rounded-full" style={{ width: `${rc.confidence}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Section>
+                  ))}
+                </div>
+              </Section>
+            )}
 
             {payload.steps.length > 0 && (
-              <Section icon={<ListChecks className="h-4 w-4" />} title="Step-by-step Troubleshooting" delay={120}>
+              <Section
+                icon={<ListChecks className="h-4 w-4" />}
+                title="Step-by-step Troubleshooting"
+                delay={120}
+              >
                 <ol className="space-y-2">
                   {payload.steps.map((s, i) => (
-                    <li key={i} className="flex gap-3 rounded-xl bg-surface border border-border p-3">
-                      <span className="h-6 w-6 rounded-lg bg-primary-soft text-primary text-xs font-semibold flex items-center justify-center shrink-0">{i + 1}</span>
+                    <li
+                      key={i}
+                      className="flex gap-3 rounded-xl bg-surface border border-border p-3"
+                    >
+                      <span className="h-6 w-6 rounded-lg bg-primary-soft text-primary text-xs font-semibold flex items-center justify-center shrink-0">
+                        {i + 1}
+                      </span>
                       <span className="text-sm text-foreground">{s}</span>
                     </li>
                   ))}
@@ -192,13 +258,24 @@ function AIBubble({ loading, payload }: { loading?: boolean; payload?: AIPayload
             )}
 
             {payload.similarCases.length > 0 && (
-              <Section icon={<FileText className="h-4 w-4" />} title="Similar Past Cases" delay={240}>
+              <Section
+                icon={<FileText className="h-4 w-4" />}
+                title="Similar Past Cases"
+                delay={240}
+              >
                 <div className="grid sm:grid-cols-2 gap-2">
                   {payload.similarCases.map((c) => (
-                    <div key={c.id} className="rounded-xl border border-border bg-surface p-3 hover-lift cursor-pointer">
+                    <div
+                      key={c.id}
+                      className="rounded-xl border border-border bg-surface p-3 hover-lift cursor-pointer"
+                    >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-[11px] font-mono font-semibold text-muted-foreground">{c.id}</span>
-                        <span className="text-[10px] font-semibold text-primary bg-primary-soft px-1.5 py-0.5 rounded-md">{c.tag}</span>
+                        <span className="text-[11px] font-mono font-semibold text-muted-foreground">
+                          {c.id}
+                        </span>
+                        <span className="text-[10px] font-semibold text-primary bg-primary-soft px-1.5 py-0.5 rounded-md">
+                          {c.tag}
+                        </span>
                       </div>
                       <div className="text-sm font-medium text-foreground">{c.title}</div>
                     </div>
@@ -208,16 +285,23 @@ function AIBubble({ loading, payload }: { loading?: boolean; payload?: AIPayload
             )}
 
             {payload.finalFix && (
-              <Section icon={<Lightbulb className="h-4 w-4" />} title="Final Fix" delay={360} highlight>
+              <Section
+                icon={<Lightbulb className="h-4 w-4" />}
+                title="Final Fix"
+                delay={360}
+                highlight
+              >
                 <div className="rounded-xl bg-gradient-to-br from-success/10 to-success/5 border border-success/30 p-4">
-                  <div className="text-sm text-foreground leading-relaxed">{payload.finalFix}</div>
+                  <div className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                    {payload.finalFix}
+                  </div>
                 </div>
               </Section>
             )}
 
             {payload.notes && (
               <Section icon={<StickyNote className="h-4 w-4" />} title="Notes" delay={480}>
-                <div className="rounded-xl bg-secondary/60 border border-border p-3 text-sm text-muted-foreground leading-relaxed">
+                <div className="rounded-xl bg-secondary/60 border border-border p-3 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
                   {payload.notes}
                 </div>
               </Section>
@@ -229,14 +313,30 @@ function AIBubble({ loading, payload }: { loading?: boolean; payload?: AIPayload
   );
 }
 
-function Section({ icon, title, children, delay = 0, highlight }: { icon: React.ReactNode; title: string; children: React.ReactNode; delay?: number; highlight?: boolean }) {
+function Section({
+  icon,
+  title,
+  children,
+  delay = 0,
+  highlight,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+  delay?: number;
+  highlight?: boolean;
+}) {
   return (
     <div className="animate-fade-in-up" style={{ animationDelay: `${delay}ms` }}>
       <div className="flex items-center gap-2 mb-2">
-        <div className={`h-6 w-6 rounded-lg flex items-center justify-center ${highlight ? "bg-success/15 text-success" : "bg-primary-soft text-primary"}`}>
+        <div
+          className={`h-6 w-6 rounded-lg flex items-center justify-center ${highlight ? "bg-success/15 text-success" : "bg-primary-soft text-primary"}`}
+        >
           {icon}
         </div>
-        <div className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">{title}</div>
+        <div className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+          {title}
+        </div>
       </div>
       {children}
     </div>
