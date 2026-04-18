@@ -12,7 +12,16 @@ class Base(DeclarativeBase):
     pass
 
 
+import os as _os
+import sys as _sys
+
 _settings = get_settings()
+print(
+    f"DB_INIT settings.database_url={_settings.database_url} "
+    f"env.DATABASE_URL={_os.environ.get('DATABASE_URL', '<unset>')}",
+    flush=True,
+    file=_sys.stderr,
+)
 _is_sqlite = _settings.database_url.startswith("sqlite")
 engine = create_engine(
     _settings.database_url,
