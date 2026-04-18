@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrackingRouteImport } from './routes/tracking'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ContactsRouteImport } from './routes/contacts'
 import { Route as ChecklistsRouteImport } from './routes/checklists'
 import { Route as ChatRouteImport } from './routes/chat'
@@ -26,6 +27,11 @@ const TrackingRoute = TrackingRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactsRoute = ContactsRouteImport.update({
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/chat': typeof ChatRoute
   '/checklists': typeof ChecklistsRoute
   '/contacts': typeof ContactsRoute
+  '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/tracking': typeof TrackingRoute
 }
@@ -76,6 +83,7 @@ export interface FileRoutesByTo {
   '/chat': typeof ChatRoute
   '/checklists': typeof ChecklistsRoute
   '/contacts': typeof ContactsRoute
+  '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/tracking': typeof TrackingRoute
 }
@@ -87,6 +95,7 @@ export interface FileRoutesById {
   '/chat': typeof ChatRoute
   '/checklists': typeof ChecklistsRoute
   '/contacts': typeof ContactsRoute
+  '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/tracking': typeof TrackingRoute
 }
@@ -99,6 +108,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/checklists'
     | '/contacts'
+    | '/login'
     | '/settings'
     | '/tracking'
   fileRoutesByTo: FileRoutesByTo
@@ -109,6 +119,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/checklists'
     | '/contacts'
+    | '/login'
     | '/settings'
     | '/tracking'
   id:
@@ -119,6 +130,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/checklists'
     | '/contacts'
+    | '/login'
     | '/settings'
     | '/tracking'
   fileRoutesById: FileRoutesById
@@ -130,6 +142,7 @@ export interface RootRouteChildren {
   ChatRoute: typeof ChatRoute
   ChecklistsRoute: typeof ChecklistsRoute
   ContactsRoute: typeof ContactsRoute
+  LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
   TrackingRoute: typeof TrackingRoute
 }
@@ -148,6 +161,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contacts': {
@@ -202,6 +222,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChatRoute: ChatRoute,
   ChecklistsRoute: ChecklistsRoute,
   ContactsRoute: ContactsRoute,
+  LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
   TrackingRoute: TrackingRoute,
 }

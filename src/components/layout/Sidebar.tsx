@@ -37,7 +37,9 @@ export function Sidebar() {
             <Sparkles className="h-3 w-3" />
             Active module
           </div>
-          <div className="mt-1.5 text-sm font-semibold text-sidebar-foreground truncate">{selected.name}</div>
+          <div className="mt-1.5 text-sm font-semibold text-sidebar-foreground truncate">
+            {selected.name}
+          </div>
           <div className="mt-2 flex items-center gap-2">
             <div className="flex-1 h-1.5 rounded-full bg-sidebar-border overflow-hidden">
               <div
@@ -45,7 +47,9 @@ export function Sidebar() {
                 style={{ width: `${selected.progress}%` }}
               />
             </div>
-            <span className="text-[10px] font-medium text-muted-foreground">{selected.progress}%</span>
+            <span className="text-[10px] font-medium text-muted-foreground">
+              {selected.progress}%
+            </span>
           </div>
         </div>
       </div>
@@ -71,10 +75,14 @@ export function Sidebar() {
               {active && (
                 <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r-full bg-primary" />
               )}
-              <Icon className={`h-4 w-4 ${active ? "text-primary" : "text-muted-foreground group-hover:text-sidebar-foreground"} transition-colors`} />
+              <Icon
+                className={`h-4 w-4 ${active ? "text-primary" : "text-muted-foreground group-hover:text-sidebar-foreground"} transition-colors`}
+              />
               <span>{item.label}</span>
               {item.highlight && !active && (
-                <span className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary">AI</span>
+                <span className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary">
+                  AI
+                </span>
               )}
             </Link>
           );
@@ -94,7 +102,9 @@ export function Sidebar() {
           {path === "/settings" && (
             <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r-full bg-primary" />
           )}
-          <SettingsIcon className={`h-4 w-4 ${path === "/settings" ? "text-primary" : "text-muted-foreground group-hover:text-sidebar-foreground"} transition-colors`} />
+          <SettingsIcon
+            className={`h-4 w-4 ${path === "/settings" ? "text-primary" : "text-muted-foreground group-hover:text-sidebar-foreground"} transition-colors`}
+          />
           <span>Settings</span>
         </Link>
       </div>
@@ -104,7 +114,9 @@ export function Sidebar() {
           <div className="absolute -top-4 -right-4 h-16 w-16 rounded-full bg-white/10 blur-xl" />
           <Bot className="h-5 w-5 mb-2 relative" />
           <div className="text-sm font-semibold relative">Need help?</div>
-          <div className="text-[11px] opacity-80 mt-0.5 relative">Ask Rexora AI to triage your issue.</div>
+          <div className="text-[11px] opacity-80 mt-0.5 relative">
+            Ask Rexora AI to triage your issue.
+          </div>
         </div>
       </div>
     </aside>

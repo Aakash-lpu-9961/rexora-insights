@@ -20,6 +20,14 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Backend
+backend/.env
+backend/.venv/
+backend/__pycache__/
+**/__pycache__/
+*.pyc
+backend/rexora_backend.egg-info/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
