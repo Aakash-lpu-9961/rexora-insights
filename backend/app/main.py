@@ -38,13 +38,16 @@ def _migrate_sqlite_lite() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):  # noqa: ARG001
     import os
-    logger.info(
-        "Rexora backend starting up — creating tables and seeding if needed "
-        "(engine=%s, env=%s)",
+    logger.error(
+        "STARTUP engine=%s | DATABASE_URL env=%s",
         engine.url.render_as_string(hide_password=True),
         os.environ.get("DATABASE_URL", "<unset>"),
     )
-    Base.metadata.create_all(bind=engine)
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as exc:
+        logger.error("STARTUP create_all failed: %s: %s", type(exc).__name__, exc)
+        raise
     _migrate_sqlite_lite()
     db = SessionLocal()
     try:
