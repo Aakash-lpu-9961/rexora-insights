@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from ..audit import log_audit
 from ..auth import get_current_user
 from ..db import get_db
 from ..models import Module, User
@@ -54,7 +55,7 @@ def list_modules(db: Session = Depends(get_db), _: User = Depends(get_current_us
 def create_module(
     payload: ModuleCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ) -> ModuleOut:
     mid = payload.id or _slugify(payload.name)
     # ensure uniqueness
@@ -73,6 +74,7 @@ def create_module(
         sort_order=int(max_sort) + 1,
     )
     db.add(mod)
+    log_audit(db, actor=user, action="create", entity="module", entity_id=mid, summary=f"Created module {mod.name}")
     db.commit()
     db.refresh(mod)
     return _to_out(mod)
@@ -114,10 +116,12 @@ def update_module(
 
 @router.delete("/{module_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_module(
-    module_id: str, db: Session = Depends(get_db), _: User = Depends(get_current_user)
+    module_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ) -> None:
     m = db.get(Module, module_id)
     if not m:
         raise HTTPException(404, "Module not found")
+    name = m.name
     db.delete(m)
+    log_audit(db, actor=user, action="delete", entity="module", entity_id=module_id, summary=f"Deleted module {name}")
     db.commit()

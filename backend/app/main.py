@@ -5,20 +5,41 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import inspect, text
 
 from .config import get_settings
 from .db import Base, SessionLocal, engine
-from .routers import attachments, auth, cases, chat, checklists, contacts, modules, tracking
+from .routers import admin, attachments, auth, cases, chat, checklists, contacts, modules, tracking
 from .seed import seed_if_empty
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
 logger = logging.getLogger("rexora")
 
 
+def _migrate_sqlite_lite() -> None:
+    """Add columns to existing SQLite DBs that were created before this release.
+
+    `Base.metadata.create_all` only creates missing tables — it does not add new
+    columns to existing tables. On Fly's persistent volume the DB already exists,
+    so we need a tiny idempotent migration for the new `users.role` column.
+    """
+    if not engine.url.get_backend_name().startswith("sqlite"):
+        return
+    insp = inspect(engine)
+    if not insp.has_table("users"):
+        return
+    cols = {c["name"] for c in insp.get_columns("users")}
+    if "role" not in cols:
+        with engine.begin() as conn:
+            logger.info("SQLite migration: adding users.role column")
+            conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(16) NOT NULL DEFAULT 'user'"))
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):  # noqa: ARG001
     logger.info("Rexora backend starting up — creating tables and seeding if needed")
     Base.metadata.create_all(bind=engine)
+    _migrate_sqlite_lite()
     db = SessionLocal()
     try:
         seed_if_empty(db)
@@ -31,7 +52,7 @@ settings = get_settings()
 app = FastAPI(
     title="Rexora API",
     description="AI-assisted troubleshooting platform for support engineers.",
-    version="0.1.0",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
@@ -51,6 +72,7 @@ app.include_router(contacts.router)
 app.include_router(tracking.router)
 app.include_router(attachments.router)
 app.include_router(chat.router)
+app.include_router(admin.router)
 
 
 @app.get("/api/health", tags=["meta"])

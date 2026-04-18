@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -28,6 +29,14 @@ class UserOut(BaseModel):
     id: int
     email: EmailStr
     name: str
+    role: Literal["admin", "user"] = "user"
+    is_active: bool = True
+
+
+class AdminUserUpdate(BaseModel):
+    role: Literal["admin", "user"] | None = None
+    is_active: bool | None = None
+    name: str | None = None
 
 
 # ---------- Shared JSON shapes ----------
@@ -279,3 +288,157 @@ class AIResponse(BaseModel):
 
 
 TokenResponse.model_rebuild()
+
+
+# ---------- Admin / Templates ----------
+class ModuleTemplateChecklist(BaseModel):
+    title: str
+    description: str = ""
+    steps: list[Step] = Field(default_factory=list)
+
+
+class ModuleTemplateCase(BaseModel):
+    summary: str
+    root_cause: str = ""
+    resolution: str = ""
+    tags: list[str] = Field(default_factory=list)
+    priority: Literal["Critical", "High", "Medium", "Low"] = "Medium"
+    case_date: str = ""
+    team: str = ""
+    client_id: str = ""
+
+
+class ModuleTemplateContact(BaseModel):
+    name: str
+    team: str = ""
+    role: str = ""
+    email: str = ""
+    initials: str = ""
+
+
+class ModuleTemplateBase(BaseModel):
+    name: str
+    description: str = ""
+    short: str = ""
+    color: str = "oklch(0.55 0.2 278)"
+    overview: Overview = Field(default_factory=Overview)
+    chatGreeting: str = ""
+    chatSuggestions: list[str] = Field(default_factory=list)
+    checklists: list[ModuleTemplateChecklist] = Field(default_factory=list)
+    cases: list[ModuleTemplateCase] = Field(default_factory=list)
+    contacts: list[ModuleTemplateContact] = Field(default_factory=list)
+
+
+class ModuleTemplateCreate(ModuleTemplateBase):
+    id: str | None = None
+
+
+class ModuleTemplateUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    short: str | None = None
+    color: str | None = None
+    overview: Overview | None = None
+    chatGreeting: str | None = None
+    chatSuggestions: list[str] | None = None
+    checklists: list[ModuleTemplateChecklist] | None = None
+    cases: list[ModuleTemplateCase] | None = None
+    contacts: list[ModuleTemplateContact] | None = None
+
+
+class ModuleTemplateOut(ModuleTemplateBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+
+
+class InstantiateModuleRequest(BaseModel):
+    id: str | None = None
+    name: str
+    template_id: str
+
+
+# ---------- AI Insights ----------
+class ChatFeedbackRequest(BaseModel):
+    feedback: Literal["up", "down"]
+    note: str = ""
+
+
+class AIQueryLogOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    user_id: int | None
+    user_email: str = ""
+    module_id: str | None
+    module_name: str = ""
+    query: str
+    response: dict
+    feedback: Literal["up", "down"] | None = None
+    feedback_note: str = ""
+    created_at: datetime
+
+
+class ChatResponseWithId(BaseModel):
+    log_id: int
+    response: AIResponse
+
+
+# ---------- Audit ----------
+class AuditLogOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    actor_id: int | None
+    actor_email: str
+    action: str
+    entity: str
+    entity_id: str
+    summary: str
+    meta: dict
+    created_at: datetime
+
+
+# ---------- Analytics ----------
+class AnalyticsModuleStat(BaseModel):
+    module_id: str
+    module_name: str
+    case_count: int
+    checklist_count: int
+
+
+class AnalyticsTagCount(BaseModel):
+    tag: str
+    count: int
+
+
+class AnalyticsActivityItem(BaseModel):
+    id: int
+    actor_email: str
+    action: str
+    entity: str
+    entity_id: str
+    summary: str
+    created_at: datetime
+
+
+class AnalyticsOverview(BaseModel):
+    total_modules: int
+    total_cases: int
+    total_checklists: int
+    total_contacts: int
+    total_tracking: int
+    total_attachments: int
+    total_users: int
+    total_admins: int
+    ai_queries_total: int
+    ai_queries_last_7d: int
+    ai_feedback_up: int
+    ai_feedback_down: int
+    cases_per_module: list[AnalyticsModuleStat]
+    top_tags: list[AnalyticsTagCount]
+    recent_activity: list[AnalyticsActivityItem]
+
+
+# ---------- CSV bulk import ----------
+class CSVImportResult(BaseModel):
+    created: int
+    skipped: int
+    errors: list[str] = Field(default_factory=list)

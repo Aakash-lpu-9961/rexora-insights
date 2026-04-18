@@ -20,6 +20,7 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    role: Mapped[str] = mapped_column(String(16), default="user", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, nullable=False)
 
 
@@ -133,3 +134,48 @@ class Attachment(Base):
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     module: Mapped[Module] = relationship(back_populates="attachments")
+
+
+class ModuleTemplate(Base):
+    __tablename__ = "module_templates"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    # Defaults stored as JSON blobs so new modules can be initialized quickly.
+    short: Mapped[str] = mapped_column(String(16), nullable=False, default="")
+    color: Mapped[str] = mapped_column(String(64), nullable=False, default="oklch(0.55 0.2 278)")
+    overview: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    chat_greeting: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    chat_suggestions: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    checklists: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    cases: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    contacts: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, nullable=False)
+
+
+class AIQueryLog(Base):
+    __tablename__ = "ai_query_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    module_id: Mapped[str | None] = mapped_column(ForeignKey("modules.id", ondelete="SET NULL"), nullable=True, index=True)
+    query: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    response: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    feedback: Mapped[str | None] = mapped_column(String(16), nullable=True)  # 'up' | 'down' | None
+    feedback_note: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, nullable=False, index=True)
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    actor_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    actor_email: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    action: Mapped[str] = mapped_column(String(32), nullable=False)  # 'create' | 'update' | 'delete'
+    entity: Mapped[str] = mapped_column(String(64), nullable=False, index=True)  # 'module' | 'case' | 'checklist' | ...
+    entity_id: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+    summary: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    meta: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, nullable=False, index=True)
