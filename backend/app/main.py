@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import inspect, text
 
 from .config import get_settings
@@ -70,6 +71,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list if settings.cors_origins_list else ["*"],
+    allow_origin_regex=settings.cors_allow_origin_regex or None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -87,12 +89,22 @@ app.include_router(admin.router)
 
 
 @app.get("/api/health", tags=["meta"])
-def health() -> dict[str, str]:
-    return {
+def health() -> JSONResponse:
+    """Readiness probe.
+
+    Returns 200 when the app booted cleanly and DB-dependent routes are usable.
+    Returns 503 (with the same JSON shape) if `lifespan` captured a startup
+    error — so Fly/load balancers stop routing traffic to a process whose
+    database was never initialised instead of sending requests that would all
+    500 at the ORM layer.
+    """
+    body = {
         "status": "ok" if not STARTUP_ERROR else "degraded",
         "service": "rexora-backend",
         "startup_error": STARTUP_ERROR or "",
     }
+    status_code = 200 if not STARTUP_ERROR else 503
+    return JSONResponse(body, status_code=status_code)
 
 
 @app.get("/", tags=["meta"])
