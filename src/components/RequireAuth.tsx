@@ -10,13 +10,15 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (initializing) return;
-    if (!isAuthenticated) {
-      void navigate({
-        to: "/login",
-        search: { redirect: location.pathname + (location.searchStr || "") },
-      });
-    }
-  }, [isAuthenticated, initializing, navigate, location.pathname, location.searchStr]);
+    if (isAuthenticated) return;
+    // Don't redirect from /login back to /login — the router is mid-transition
+    // after sign-out and we briefly still render inside AppShell/RequireAuth.
+    if (location.pathname === "/login") return;
+    void navigate({
+      to: "/login",
+      search: { redirect: location.pathname },
+    });
+  }, [isAuthenticated, initializing, navigate, location.pathname]);
 
   if (initializing) {
     return (
