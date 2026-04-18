@@ -37,7 +37,13 @@ def _migrate_sqlite_lite() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):  # noqa: ARG001
-    logger.info("Rexora backend starting up — creating tables and seeding if needed")
+    import os
+    logger.info(
+        "Rexora backend starting up — creating tables and seeding if needed "
+        "(engine=%s, env=%s)",
+        engine.url.render_as_string(hide_password=True),
+        os.environ.get("DATABASE_URL", "<unset>"),
+    )
     Base.metadata.create_all(bind=engine)
     _migrate_sqlite_lite()
     db = SessionLocal()
