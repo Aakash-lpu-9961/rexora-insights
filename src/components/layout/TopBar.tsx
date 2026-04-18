@@ -100,7 +100,7 @@ export function TopBar() {
                 AM
               </div>
               <div className="hidden md:block text-left leading-tight">
-                <div className="text-xs font-medium text-foreground">Aarav Mehta</div>
+                <div className="text-xs font-medium text-foreground">Aakash Kumar</div>
                 <div className="text-[10px] text-muted-foreground">Tech Lead</div>
               </div>
               <ChevronDown className="h-4 w-4 text-muted-foreground hidden md:block" />
