@@ -38,15 +38,21 @@ def _migrate_sqlite_lite() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):  # noqa: ARG001
     import os
-    logger.error(
-        "STARTUP engine=%s | DATABASE_URL env=%s",
-        engine.url.render_as_string(hide_password=True),
-        os.environ.get("DATABASE_URL", "<unset>"),
+    import sys
+    print(
+        f"STARTUP engine={engine.url.render_as_string(hide_password=True)} "
+        f"DATABASE_URL_env={os.environ.get('DATABASE_URL', '<unset>')}",
+        flush=True,
+        file=sys.stderr,
     )
     try:
         Base.metadata.create_all(bind=engine)
     except Exception as exc:
-        logger.error("STARTUP create_all failed: %s: %s", type(exc).__name__, exc)
+        print(
+            f"STARTUP create_all FAILED: {type(exc).__name__}: {exc}",
+            flush=True,
+            file=sys.stderr,
+        )
         raise
     _migrate_sqlite_lite()
     db = SessionLocal()
