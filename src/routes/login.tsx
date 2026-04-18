@@ -1,13 +1,20 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sparkles, Loader2, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
-  validateSearch: (search: Record<string, unknown>) => ({
-    redirect: typeof search.redirect === "string" ? search.redirect : "/",
-  }),
+  validateSearch: (search: Record<string, unknown>) => {
+    const raw = typeof search.redirect === "string" ? search.redirect : "/";
+    // Only allow internal paths that don't bounce back through /login, to
+    // prevent redirect chains like /login?redirect=/login?redirect=/…
+    const safe =
+      raw.startsWith("/") && !raw.startsWith("//") && !raw.startsWith("/login")
+        ? raw
+        : "/";
+    return { redirect: safe };
+  },
 });
 
 function LoginPage() {
@@ -22,9 +29,11 @@ function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  if (isAuthenticated) {
-    void navigate({ to: redirect || "/" });
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      void navigate({ to: redirect || "/" });
+    }
+  }, [isAuthenticated, redirect, navigate]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
