@@ -41,13 +41,9 @@ STARTUP_ERROR: str | None = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):  # noqa: ARG001
     global STARTUP_ERROR
-    import os
-    import sys
-    print(
-        f"STARTUP engine={engine.url.render_as_string(hide_password=True)} "
-        f"DATABASE_URL_env={os.environ.get('DATABASE_URL', '<unset>')}",
-        flush=True,
-        file=sys.stderr,
+    logger.info(
+        "Rexora backend starting up — engine=%s",
+        engine.url.render_as_string(hide_password=True),
     )
     try:
         Base.metadata.create_all(bind=engine)
@@ -59,7 +55,7 @@ async def lifespan(app: FastAPI):  # noqa: ARG001
             db.close()
     except Exception as exc:
         STARTUP_ERROR = f"{type(exc).__name__}: {exc}"
-        print(f"STARTUP FAILED: {STARTUP_ERROR}", flush=True, file=sys.stderr)
+        logger.exception("Startup failed: %s", STARTUP_ERROR)
     yield
 
 
@@ -96,7 +92,6 @@ def health() -> dict[str, str]:
         "status": "ok" if not STARTUP_ERROR else "degraded",
         "service": "rexora-backend",
         "startup_error": STARTUP_ERROR or "",
-        "database_url": engine.url.render_as_string(hide_password=True),
     }
 
 
