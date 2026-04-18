@@ -35,8 +35,12 @@ def _migrate_sqlite_lite() -> None:
             conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(16) NOT NULL DEFAULT 'user'"))
 
 
+STARTUP_ERROR: str | None = None
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):  # noqa: ARG001
+    global STARTUP_ERROR
     import os
     import sys
     print(
@@ -47,19 +51,15 @@ async def lifespan(app: FastAPI):  # noqa: ARG001
     )
     try:
         Base.metadata.create_all(bind=engine)
+        _migrate_sqlite_lite()
+        db = SessionLocal()
+        try:
+            seed_if_empty(db)
+        finally:
+            db.close()
     except Exception as exc:
-        print(
-            f"STARTUP create_all FAILED: {type(exc).__name__}: {exc}",
-            flush=True,
-            file=sys.stderr,
-        )
-        raise
-    _migrate_sqlite_lite()
-    db = SessionLocal()
-    try:
-        seed_if_empty(db)
-    finally:
-        db.close()
+        STARTUP_ERROR = f"{type(exc).__name__}: {exc}"
+        print(f"STARTUP FAILED: {STARTUP_ERROR}", flush=True, file=sys.stderr)
     yield
 
 
@@ -92,7 +92,12 @@ app.include_router(admin.router)
 
 @app.get("/api/health", tags=["meta"])
 def health() -> dict[str, str]:
-    return {"status": "ok", "service": "rexora-backend"}
+    return {
+        "status": "ok" if not STARTUP_ERROR else "degraded",
+        "service": "rexora-backend",
+        "startup_error": STARTUP_ERROR or "",
+        "database_url": engine.url.render_as_string(hide_password=True),
+    }
 
 
 @app.get("/", tags=["meta"])
